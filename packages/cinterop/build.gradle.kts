@@ -829,11 +829,5 @@ afterEvaluate {
     tasks.named("macosX64SourcesJar") {
         dependsOn("generateSdkVersionConstant")
     }
-    android {
-        libraryVariants.all { variant ->
-            if (variant.name == "release") {
-                kotlin.androidTarget.publishLibraryVariants(variant.name)
-            }
-        }
-    }
+
 }
