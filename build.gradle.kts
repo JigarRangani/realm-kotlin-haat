@@ -64,6 +64,29 @@ fun copyProperties(action: GradleBuild) {
     }
 }
 
+fun copyGitHubProperties(action: GradleBuild) {
+    // Add the properties needed for your GitHub Packages publishing
+    val propsToCopy = listOf("gpr.user", "gpr.key", "gpr.repo", "GROUP")
+    val project: Project = action.project
+    val buildProperties = action.startParameter.projectProperties
+    propsToCopy.forEach {
+        if (project.hasProperty(it)) {
+            buildProperties[it] = project.property(it) as String
+        }
+    }
+}
+
+tasks.register<GradleBuild>("publishToGitHubPackages") {
+    description = "Pushes all Realm artifacts to GitHub Packages"
+    group = "Publishing"
+    // Point this to the build file inside the 'packages' directory
+    buildFile = file("${rootDir}/packages/build.gradle.kts")
+    // The task to run inside the sub-project
+    tasks = listOf("publish")
+    // Use the helper function to pass your credentials
+    copyGitHubProperties(this)
+}
+
 tasks {
 
     register("ktlintCheck") {
