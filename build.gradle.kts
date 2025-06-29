@@ -125,6 +125,7 @@ tasks {
         }
     }
 
+/*
     register<GradleBuild>("mavenCentralUpload") {
         description = "Push all Realm artifacts to Maven Central"
         group = "Publishing"
@@ -132,6 +133,7 @@ tasks {
         tasks = listOf("publishToSonatype")
         copyProperties(this)
     }
+*/
 
     // TODO Verify we can actually use these debug symbols
     val archiveDebugSymbols by register("archiveDebugSymbols", Zip::class) {
@@ -153,7 +155,7 @@ tasks {
     // Make sure that these parameters are set before calling tasks that uses them.
     // In Groovy we could have used an lazy evaluated GString instead, but this does
     // seem possible in Kotlin.
-    val verifyS3Access by register("verifyS3Access", Task::class) {
+    /*val verifyS3Access by register("verifyS3Access", Task::class) {
         doLast {
             getPropertyValue("REALM_S3_ACCESS_KEY", true)
             getPropertyValue("REALM_S3_SECRET_KEY", true)
@@ -197,5 +199,5 @@ tasks {
         group = "Release"
         description = "Upload release metadata to S3 (Native debug symbols, version files)"
         dependsOn.addAll(listOf(uploadDebugSymbols, updateS3VersionFile))
-    }
+    }*/
 }
