@@ -80,7 +80,7 @@ tasks.register<GradleBuild>("publishToGitHubPackages") {
     description = "Pushes all Realm artifacts to GitHub Packages"
     group = "Publishing"
     // Point this to the build file inside the 'packages' directory
-    buildFile = file("${rootDir}/packages/build.gradle.kts")
+    buildFile = file("${rootDir}/build.gradle.kts")
     // The task to run inside the sub-project
     tasks = listOf("publish")
     // Use the helper function to pass your credentials
