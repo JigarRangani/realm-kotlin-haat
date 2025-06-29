@@ -6,19 +6,6 @@
 ### Enhancements
 * None.
 
-### Fixed
-Fix compiler crash after update to Kotlin 2.1.21 (Issue [#1857](https://github.com/realm/realm-kotlin/issues/1857))
-
-## 3.0.0 (2024-10-03)
-
-### Breaking Changes
-* [Sync] Atlas Device Sync related functionality has been removed from the project.
-
-### Enhancements
-* None.
-
-### Fixed
-* None.
 
 ### Compatibility
 * File format: Generates Realms with file format v24 (reads and upgrades file format v10 or later).
