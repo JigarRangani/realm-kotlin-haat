@@ -18,8 +18,6 @@
 package io.realm.kotlin
 
 import Realm
-import io.github.gradlenexus.publishplugin.NexusPublishExtension
-import io.github.gradlenexus.publishplugin.NexusPublishPlugin
 import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -30,10 +28,6 @@ import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.findByType
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.withType
-import org.gradle.plugins.signing.SigningExtension
-import org.gradle.plugins.signing.SigningPlugin
-import java.io.File
-import java.time.Duration
 
 // Custom options for POM configurations that might differ between Realm modules
 open class PomOptions {
@@ -49,111 +43,49 @@ open class RealmPublishExtensions {
     }
 }
 
+// Helper function to get properties from gradle.properties or environment variables
 fun getPropertyValue(project: Project, propertyName: String, defaultValue: String = ""): String {
-    if (project.hasProperty(propertyName)) {
-        return project.property(propertyName) as String
-    }
-    val systemValue: String? = System.getenv(propertyName)
-    return systemValue ?: defaultValue
+    val property = project.findProperty(propertyName) as String?
+    return property ?: System.getenv(propertyName) ?: defaultValue
 }
 
-fun hasProperty(project: Project, propertyName: String): Boolean {
-    val systemProp: String? = System.getenv(propertyName)
-    val projectProp: Boolean = project.hasProperty(propertyName)
-    return projectProp || (systemProp != null && systemProp.isNotEmpty())
-}
-
-// Plugin responsible for handling publishing to mavenLocal and Maven Central.
+// Plugin responsible for handling publishing to GitHub Packages
 class RealmPublishPlugin : Plugin<Project> {
     override fun apply(project: Project): Unit = project.run {
-        // Configure constants required by the publishing process
-        val signBuild: Boolean = hasProperty(project,"signBuild")
-        configureSignedBuild(signBuild, this)
-    }
-
-    private fun configureTestRepository(project: Project) {
-        val relativePathToTestRepository: String = getPropertyValue(project, "testRepository")
-        val testRepository = File(project.rootProject.rootDir.absolutePath + File.separator + relativePathToTestRepository.replace("/", File.separator))
-        if (relativePathToTestRepository.isNotEmpty()) {
-            project.extensions.getByType<PublishingExtension>().apply {
-                repositories {
-                    maven {
-                        name = "Test"
-                        url = testRepository.toURI()
-                    }
-                }
-            }
+        // We only apply publishing logic to sub-projects, not the root project.
+        if (project != project.rootProject) {
+            configureSubProject(project)
         }
     }
 
-    private fun configureSignedBuild(signBuild: Boolean, project: Project) {
-        // The nexus publisher plugin can only be applied to top-level projects.
-        // See https://github.com/gradle-nexus/publish-plugin/issues/81
-        // Also, we should not apply the MavenPublish plugin to the root project as it will result in an
-        // empty `realm-kotlin` artifact being deployed to Maven Central.
-        val isRootProject: Boolean = (project == project.rootProject)
-        if (isRootProject) {
-            configureRootProject(project)
-        } else {
-            configureSubProject(project, signBuild)
-            configureTestRepository(project)
-        }
-    }
-
-    private fun configureSubProject(project: Project, signBuild: Boolean) {
-        // ID for the Realm Kotlin PGP key file.
-        val keyId = "1F48C9B0"
-        // Apparently Gradle treats properties define through a gradle.properties file differently
-        // than those defined through the commandline using `-P`. This is a problem with new
-        // line characters as found in an ascii-armoured PGP file. To ensure we can work around this,
-        // all newlines have been replaced with `#` and thus needs to be reverted here.
-        val ringFile: String = getPropertyValue(project,"signSecretRingFileKotlin").replace('#', '\n')
-        val password: String = getPropertyValue(project, "signPasswordKotlin")
-
+    private fun configureSubProject(project: Project) {
         with(project) {
-            plugins.apply(SigningPlugin::class.java)
             plugins.apply(MavenPublishPlugin::class.java)
 
-            // Create the RealmPublish plugin. It must evaluate after all other plugins as it modifies their output.
-            // Only allow configuration from sub projects as the top-level project is just a placeholder
+            // Create the RealmPublish plugin extension.
             extensions.create<RealmPublishExtensions>("realmPublish")
 
+            // Configure the POM details after the project has been evaluated
             afterEvaluate {
                 project.extensions.findByType<RealmPublishExtensions>()?.run {
                     configurePom(project, pom)
                 }
             }
 
-            // Configure signing of artifacts
-            extensions.getByType<SigningExtension>().apply {
-                isRequired = signBuild
-                useInMemoryPgpKeys(keyId, ringFile, password)
-                sign(project.extensions.getByType<PublishingExtension>().publications)
-            }
-        }
-    }
-
-    private fun configureRootProject(project: Project) {
-        val sonatypeStagingProfileId = "78c19333e4450f"
-
-        with(project) {
-            project.plugins.apply(NexusPublishPlugin::class.java)
-
-            // Configure upload to Maven Central.
-            // The nexus publisher plugin can only be applied to top-level projects.
-            // See https://github.com/gradle-nexus/publish-plugin/issues/81
-            extensions.getByType<NexusPublishExtension>().apply {
-                this.packageGroup.set("io.realm.kotlin")
-                this.repositories {
-                    sonatype {
-                        this.stagingProfileId.set(sonatypeStagingProfileId)
-                        this.username.set(getPropertyValue(project,"ossrhUsername"))
-                        this.password.set(getPropertyValue(project,"ossrhPassword"))
+            // Configure the publishing extension to point to GitHub Packages
+            extensions.getByType<PublishingExtension>().apply {
+                repositories {
+                    maven {
+                        name = "GitHubPackages"
+                        // The URL for your GitHub Packages repository
+                        // Make sure to replace YOUR_USERNAME and YOUR_REPOSITORY
+                        url = uri("https://maven.pkg.github.com/${getPropertyValue(project, "gpr.user")}/${getPropertyValue(project, "gpr.repo")}")
+                        credentials {
+                            // Read credentials from gradle.properties
+                            username = getPropertyValue(project, "gpr.user")
+                            password = getPropertyValue(project, "gpr.key")
+                        }
                     }
-                }
-                this.transitionCheckOptions {
-                    maxRetries.set(720) // Retry for 2 hours. Sometimes Maven Central is really slow!
-                    delayBetween.set(Duration.ofSeconds(10))
                 }
             }
         }
@@ -162,6 +94,9 @@ class RealmPublishPlugin : Plugin<Project> {
     private fun configurePom(project: Project, options: PomOptions) {
         project.extensions.getByType<PublishingExtension>().apply {
             publications.withType<MavenPublication>().all {
+                // It's a good practice to modify the group ID to your own namespace
+                groupId = getPropertyValue(project, "GROUP", "io.realm.kotlin")
+
                 pom {
                     name.set(options.name)
                     description.set(options.description)
@@ -184,6 +119,7 @@ class RealmPublishPlugin : Plugin<Project> {
                     developers {
                         developers {
                             developer {
+                                // You can also update developer info if you wish
                                 name.set(Realm.Developer.name)
                                 email.set(Realm.Developer.email)
                                 organization.set(Realm.Developer.organization)
