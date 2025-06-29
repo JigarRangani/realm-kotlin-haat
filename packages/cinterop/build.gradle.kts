@@ -313,7 +313,12 @@ android {
     compileSdk = Versions.Android.compileSdkVersion
     buildToolsVersion = Versions.Android.buildToolsVersion
     ndkVersion = Versions.Android.ndkVersion
-
+    // Add this block right here!
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = false
+        }
+    }
     defaultConfig {
         minSdk = Versions.Android.minSdk
         targetSdk = Versions.Android.targetSdk
