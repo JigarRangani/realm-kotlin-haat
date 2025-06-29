@@ -121,11 +121,7 @@ val nativeLibraryIncludesIosSimulatorArm64Release =
 @Suppress("UNUSED_VARIABLE")
 kotlin {
     jvm()
-    androidTarget {
-        // Changing this will also requires an update to the publishCIPackages task
-        // in /packages/build.gradle.kts
-        publishLibraryVariants("release")
-    }
+    androidTarget()
 
     // Cinterops seems sharable across architectures (x86_64/arm) with option of differentiation in
     // the def, but not across platforms in the current target "hierarchy"
@@ -313,12 +309,7 @@ android {
     compileSdk = Versions.Android.compileSdkVersion
     buildToolsVersion = Versions.Android.buildToolsVersion
     ndkVersion = Versions.Android.ndkVersion
-    // Add this block right here!
-    buildTypes {
-        getByName("release") {
-            isMinifyEnabled = false
-        }
-    }
+
     defaultConfig {
         minSdk = Versions.Android.minSdk
         targetSdk = Versions.Android.targetSdk
@@ -837,5 +828,12 @@ afterEvaluate {
     }
     tasks.named("macosX64SourcesJar") {
         dependsOn("generateSdkVersionConstant")
+    }
+    android {
+        libraryVariants.all { variant ->
+            if (variant.name == "release") {
+                kotlin.androidTarget.publishLibraryVariants(variant.name)
+            }
+        }
     }
 }
