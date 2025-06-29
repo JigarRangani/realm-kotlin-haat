@@ -1,2 +1,2 @@
 install:
-  - ./gradlew publishAllPublicationsToTestRepository -Pgroup=com.github.JigarRangani
+  - ./gradlew publishAllToMavenLocal -Pgroup=com.github.JigarRangani

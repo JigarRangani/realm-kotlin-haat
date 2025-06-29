@@ -87,6 +87,17 @@ tasks.register<GradleBuild>("publishToGitHubPackages") {
     copyGitHubProperties(this)
 }
 
+tasks.register<GradleBuild>("publishAllToMavenLocal") {
+    description = "Pushes all Realm artifacts to the local Maven repository (~/.m2/repository)"
+    group = "Publishing"
+    // Point this to the build file inside the 'packages' directory
+    buildFile = file("${rootDir}/packages/build.gradle.kts")
+    // The task to run inside the sub-project
+    tasks = listOf("publishToMavenLocal")
+    // This is optional for maven local but good practice to include
+    copyGitHubProperties(this)
+}
+
 tasks {
 
     register("ktlintCheck") {
