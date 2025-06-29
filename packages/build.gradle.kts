@@ -51,7 +51,7 @@ allprojects {
  *
  * will build and publish all targets available to the builder platform.
  */
-/*tasks.register("publishCIPackages") {
+tasks.register("publishCIPackages") {
     group = "Publishing"
     description = "Publish packages that has been configured for this CI node. See `gradle.properties`."
 
@@ -192,4 +192,4 @@ tasks.register("uploadDokka") {
             }
         }
     }
-}*/
+}
